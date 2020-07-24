@@ -4,10 +4,7 @@ import matplotlib.pyplot as plt
 
 import healpy as hp
 
-from termcolor import colored
-
 import scipy as sp
-
 
 import altair as alt
 
