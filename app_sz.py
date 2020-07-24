@@ -50,7 +50,7 @@ catalog = os.path.join(".", "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
 
 hdulist_union = fits.open(catalog)
 
-st.markdown('## **_Planck_ Sunyaev-Zel\'dovich Galaxy Cluster Catalog**')
+st.markdown('## **Planck _Sunyaev-Zel\'dovich_ Galaxy Cluster Catalog**')
 
 df0 = pd.DataFrame({
                    'snr': range(0, 40, 1)
@@ -188,6 +188,12 @@ if show_map:
     plt.tight_layout()
     st.pyplot()
 
+st.markdown("""
+                Made by [Nareg Mirzatuny](https://github.com/NaregM)                                     
+Source code: [GitHub](
+                https://github.com/NaregM/coin_simulator) 
+                
+""")
 
 # ======================================================================================================
 c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
@@ -196,6 +202,7 @@ c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
 
 st.altair_chart(c, use_container_width = True)
 
+print()
 # ======================================================================================================
 fig, ax = plt.subplots(dpi = 30)
 
