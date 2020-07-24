@@ -6,17 +6,11 @@ import os
 
 import healpy as hp
 
-import scipy as sp
-
 import altair as alt
 
 from astropy.io import fits
 import astropy.units as u
 from astropy.coordinates import SkyCoord
-
-import ipywidgets as widgets
-
-from scipy.integrate import quad
 
 import seaborn as sns
 
@@ -40,17 +34,32 @@ from io import BytesIO
 response = requests.get("https://streamlit-data.s3-us-west-1.amazonaws.com/cmb-1.jpg")
 img = Image.open(BytesIO(response.content))
 
-# ===============================================
 
 #image = Image.open('/home/nareg/Downloads/cmb-1.jpg')
 st.image(img, use_column_width = True)
+# ===============================================
 
+df_cat = pd.DataFrame({
+                     'union': ["HFI_PCCS_SZ-union_R2.08.fits"]
+                     })
 
-catalog = os.path.join(".", "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
+catalog = st.sidebar.selectbox(
+            'Catalogs: ',
+            df_cat['union'])
 
-hdulist_union = fits.open(catalog)
+#path = os.getcwd() + "/planck_sz/Catalogs/" + catalog
 
-st.markdown('## **Planck _Sunyaev-Zel\'dovich_ Galaxy Cluster Catalog**')
+#catalog = os.path.join(, "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
+
+path = os.path.join(".", "Catalogs", catalog)
+
+hdulist_union = fits.open(path)
+
+st.markdown('## **_Planck_ Sunyaev-Zel\'dovich Galaxy Cluster Catalog**')
+
+st.markdown('This app provides interactive visual reports and statistical summaries of the SZ galaxy clusters dicovered by Planck satallite.')
+st.markdown('-------------------------------------------------------------------------------')
+
 
 df0 = pd.DataFrame({
                    'snr': range(0, 40, 1)
@@ -72,7 +81,7 @@ df2 = pd.DataFrame({
 #    df0['snr'])
 
 snr_min = st.slider('Minimum Signal to Noise Ratio (s/n): ', 3, 15, 5)
-z_min = st.slider('Minimum Redshift: ', 0.0, 1.0, 0.5)
+z_min = st.slider('Minimum Redshift: ', 0.0, 1.0, 0.15)
 
 # Changing RA and dec to Lon, lat
 def rad_2_gtic(ra, dec):
@@ -138,12 +147,12 @@ df = pd.DataFrame(data)
 df = df[(df.z.values >= z_min) & (df.SNR.values >= snr_min)]
 
 len(df), "Galaxy Clusters with signal to noise ratio (s/n) larger than ", snr_min, '.'
-"Largest mass with s/n > ", snr_min, ' : ', str(np.round(Msz.max(), 2)), r'$\times \ 10^{14}$'
+"Largest mass among clusters with s/n > ", snr_min, ' : ', str(np.round(df['M_sz/1e14'].max(), 2)), r'$\times \ 10^{14}$', r'$M_{\odot}$.'
+"Average mass of clusters with s/n > ", snr_min, ' : ', str(np.round(df['M_sz/1e14'].mean(), 2)), r'$\times \ 10^{14}$', r'$M_{\odot}$.'
 
 
 
 z_bin = np.arange(0, 1, .1)
-q_bin = np.arange(0.0, 0.25*5, 0.25) + np.log10(6.007906436920166)
 
 df2 = pd.DataFrame({
                    'show_data': [True, False],
@@ -157,6 +166,10 @@ show_table = st.sidebar.selectbox(
 show_map = st.sidebar.selectbox(
     'Show map: ',
     df2['show_map'])
+
+show_2d = st.sidebar.selectbox(
+    'Show 2D Distribution (z, s/n): ',
+    df2['show_data'])
 
 
 # ======================================================================================================
@@ -187,23 +200,22 @@ if show_map:
     #fig.colorbar(z)
     plt.tight_layout()
     st.pyplot()
+    st.markdown('---------------------------------------------------------------------------')
 
-st.markdown("""
-                Made by [Nareg Mirzatuny](https://github.com/NaregM)                                     
-Source code: [GitHub](
-                https://github.com/NaregM/coin_simulator) 
-                
-""")
+
 
 # ======================================================================================================
+st.markdown('Interactive plot that summaries four main characteristic of each cluster: redshit, s/n of detection, $M_{sz}$ and $Y_{5R500}$')
+
 c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
                                         alt.Y('M_sz/1e14', scale=alt.Scale(zero=False)),
                                         size = 'Y5R500', color=alt.Color('SNR', scale=alt.Scale(scheme='darkblue')), tooltip = ['z', 'M_sz/1e14', 'SNR'])
 
 st.altair_chart(c, use_container_width = True)
 
-print()
 # ======================================================================================================
+st.markdown('---------------------------------------------------------------------------')
+
 fig, ax = plt.subplots(dpi = 30)
 
 ax.hist(df.z.values,bins = 12, histtype = "step", lw = 2, color = "deepskyblue")
@@ -217,7 +229,47 @@ ax.margins(0.3)
 plt.tight_layout()
 st.pyplot(fig)
 
+
+if show_2d:
+
+    st.markdown('---------------------------------------------------------------------------')
+    st.markdown('A representation of 2-dimensional distribution (z VS s/n). Majority of clusters are at lower redshifts and have smaller signal to noise ratio.')
+
+    z_bin = np.linspace(0, 1, 12)
+    snr_bin = np.linspace(4, 40, 12)
+
+    Nij_snr = np.zeros((12, 12))
+
+    for i in range(1, z_bin.size):
+
+        for j in range(1, snr_bin.size):
+
+            Nij_snr[i-1, j-1] = np.sum((z_bin[i-1] <= df.z.values) & (df.z.values < z_bin[i]) &
+                            (snr_bin[j-1] <= df.SNR.values) & ((df.SNR.values) < snr_bin[j]))
+
+
+    plt.figure()
+    plt.imshow(Nij_snr, origin = 'lower', cmap = plt.cm.jet, extent = [4, 45, 0.0, 1.0], aspect = 'auto')
+    plt.xlabel('SNR')
+    plt.ylabel('z')
+    plt.colorbar(label = 'Number of galaxy clusters')
+    plt.grid(False)
+    st.pyplot()
+
 # ======================================================================================================
 if show_table:
-
+    st.markdown('---------------------------------------------------------------------------')
     df
+
+
+st.markdown('-------------------------------------------------------------------------------')
+
+st.markdown("""
+                Made by [Nareg Mirzatuny](https://github.com/NaregM)
+
+Source code: [GitHub](
+                https://github.com/NaregM/planck_sz)
+
+""")
+st.markdown('-------------------------------------------------------------------------------')
+
