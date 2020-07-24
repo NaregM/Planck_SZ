@@ -44,7 +44,9 @@ img = Image.open(BytesIO(response.content))
 st.image(img, use_column_width = True)
 
 
-hdulist_union = fits.open('/home/nareg/Downloads/HFI_PCCS_SZ-union_R2.08.fits')
+catalog = os.path.join(".", "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
+
+hdulist_union = fits.open(catalog)
 
 st.markdown('## **_Planck_ Sunyaev-Zel\'dovich Galaxy Cluster Catalog**')
 
