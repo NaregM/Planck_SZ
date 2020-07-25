@@ -47,17 +47,15 @@ catalog = st.sidebar.selectbox(
             'Catalogs: ',
             df_cat['union'])
 
-#path = os.getcwd() + "/planck_sz/Catalogs/" + catalog
-
-#catalog = os.path.join(, "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
 
 path = os.path.join(".", "Catalogs", catalog)
 
 hdulist_union = fits.open(path)
 
-st.markdown('## **_Planck_ Sunyaev-Zel\'dovich Galaxy Cluster Catalog**')
+st.markdown('## **Planck _Sunyaev-Zel\'dovich_ Galaxy Cluster Catalog Explorer**')
 
-st.markdown('This app provides interactive visual reports and statistical summaries of the SZ galaxy clusters dicovered by Planck satallite.')
+st.markdown('This app provides interactive visual reports and statistical summaries of the SZ galaxy clusters dicovered by the Planck satallite.')
+st.markdown('http://pla.esac.esa.int')
 st.markdown('-------------------------------------------------------------------------------')
 
 
@@ -74,44 +72,11 @@ df2 = pd.DataFrame({
                    'show_map': [True, False]
                    })
 
-
-#
-#snr_min = st.sidebar.selectbox(
-#    'Minimum signal to noise of detection: ',
-#    df0['snr'])
-
-snr_min = st.slider('Minimum Signal to Noise Ratio (s/n): ', 3, 15, 5)
+snr_min = st.slider('Minimum Signal to Noise Ratio (s/n) of Detection: ', 3, 15, 5)
 z_min = st.slider('Minimum Redshift: ', 0.0, 1.0, 0.15)
 
-# Changing RA and dec to Lon, lat
-def rad_2_gtic(ra, dec):
-
-    """
-    Convert RA and dec to galactiv Lon and Lat
-
-    """
-    g = SkyCoord(ra=ra*u.degree, dec=dec*u.degree, frame='fk5')
-
-    return g.galactic.l.value, g.galactic.b.value
-
-
-def gtic_2_rad(lon, lat):
-
-    """
-    Convert Lon and Lat to RA and dec
-
-    """
-    g = SkyCoord(lon*u.degree, lat*u.degree, frame='galactic')
-
-    return g.fk5.ra.value, g.fk5.dec.value
-
-
-cosmo_sample = st.sidebar.selectbox(
-    'Cosmology sample: ',
-    df2['show_data'])
-
 # Clusters used in Cosmology
-if cosmo_sample:
+if st.checkbox('Use galaxy clusters from the cosmology sample'):
 
     cosmo_id = np.where(hdulist_union[1].data['COSMO'] == True)[0]
     z_ = np.asanyarray(hdulist_union[1].data['REDSHIFT'][cosmo_id], dtype = np.float)
@@ -146,11 +111,6 @@ df = pd.DataFrame(data)
 
 df = df[(df.z.values >= z_min) & (df.SNR.values >= snr_min)]
 
-len(df), "Galaxy Clusters with signal to noise ratio (s/n) larger than ", snr_min, '.'
-"Largest mass among clusters with s/n > ", snr_min, ' : ', str(np.round(df['M_sz/1e14'].max(), 2)), r'$\times \ 10^{14}$', r'$M_{\odot}$.'
-"Average mass of clusters with s/n > ", snr_min, ' : ', str(np.round(df['M_sz/1e14'].mean(), 2)), r'$\times \ 10^{14}$', r'$M_{\odot}$.'
-
-
 
 z_bin = np.arange(0, 1, .1)
 
@@ -160,20 +120,23 @@ df2 = pd.DataFrame({
                    })
 
 show_table = st.sidebar.selectbox(
-    'Show table: ',
+    'Show Table: ',
     df2['show_data'])
 
 show_map = st.sidebar.selectbox(
-    'Show map: ',
+    'Show Sky Map: ',
     df2['show_map'])
 
 show_2d = st.sidebar.selectbox(
     'Show 2D Distribution (z, s/n): ',
     df2['show_data'])
 
+'*', len(df), "Galaxy Clusters with signal to noise ratio (s/n) larger than ", snr_min, '.'
 
+dfe = df[['z', 'SNR', 'M_sz/1e14', 'Y5R500']]
+df.style.set_caption("Hello World")
+st.table(dfe.describe()[1:])
 # ======================================================================================================
-
 if show_map:
 
     deg = df['GLON']#glon
@@ -183,40 +146,47 @@ if show_map:
     ra = ra.wrap_at(180*u.degree)
     dec = coord.Angle(deg1*u.degree)
 
-    #fig = plt.figure()
-    #hp.mollview(np.zeros(hp.nside2npix(6)), min = z.min(), max = z.max())
-    #hp.graticule()
-    #ax = fig.add_subplot(111, projection = "mollweide")
-    #hp.projscatter(glon[np.where(q > snr_min)[0]], glat[np.where(q > snr_min)[0]], lonlat = True, c = z[np.where(q > snr_min)[0]], s = 20, edgecolor = 'k')            # Add grid
-    #hp.mollview(np.zeros(hp.nside2npix(6)), cbar = None)
-    fig = plt.figure()
-    #fig = plt.gcf()
-    ax = plt.gca(projection = "mollweide", facecolor = "LightCyan")
-    #ax.scatter(ra.radian[np.where(q > snr_min)[0]], dec.radian[np.where(q > snr_min)[0]], marker = '*', c = -1*z[np.where(q > snr_min)[0]], s = 20)
-    image = ax.scatter(ra.radian, dec.radian, marker = 'o', c = df.z, s = 7, cmap = 'jet')#ax.get_images()[0]
+    fig = plt.figure(dpi = 1500)
+
+    ax = plt.gca(projection = "mollweide", facecolor = "deepskyblue")
+    image = ax.scatter(ra.radian, dec.radian, marker = 'o', c = df.z, s = 7, cmap = 'jet')
     cmap = fig.colorbar(image, ax = ax, shrink = 0.4)
-    cmap.ax.set_ylabel('Redshift', rotation = 270, labelpad = 14)
+    cmap.ax.set_ylabel('Redshift', rotation = 270, labelpad = 12)
     plt.grid(True, color = 'black', alpha = 0.2)
-    #fig.colorbar(z)
     plt.tight_layout()
-    st.pyplot()
+    st.pyplot(fig)
     st.markdown('---------------------------------------------------------------------------')
-
-
 
 # ======================================================================================================
 st.markdown('Interactive plot that summaries four main characteristic of each cluster: redshit, s/n of detection, $M_{sz}$ and $Y_{5R500}$')
 
-c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
-                                        alt.Y('M_sz/1e14', scale=alt.Scale(zero=False)),
-                                        size = 'Y5R500', color=alt.Color('SNR', scale=alt.Scale(scheme='darkblue')), tooltip = ['z', 'M_sz/1e14', 'SNR'])
 
-st.altair_chart(c, use_container_width = True)
+c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
+                                            alt.Y('M_sz/1e14', scale=alt.Scale(zero=False)),
+                                             color=alt.Color('SNR', scale=alt.Scale(scheme='darkblue')), tooltip = ['z', 'M_sz/1e14', 'SNR'])
+
+if st.checkbox('Add Linear Regression'):
+
+    c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
+                                                alt.Y('M_sz/1e14', scale=alt.Scale(zero=False)),
+                                                size = 'Y5R500', color=alt.Color('SNR', scale=alt.Scale(scheme='darkblue')), tooltip = ['z', 'M_sz/1e14', 'SNR', 'Y5R500'])
+
+    c1 = alt.Chart(df).mark_circle().encode(alt.X('z'), alt.Y('M_sz/1e14'))
+
+    reg_plot = c1.transform_regression('z', 'M_sz/1e14').mark_line(color = 'red')
+    st.altair_chart(c + reg_plot, use_container_width = True)
+
+else:
+
+    c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
+                                                alt.Y('M_sz/1e14', scale=alt.Scale(zero=False)),
+                                                size = 'Y5R500', color=alt.Color('SNR', scale=alt.Scale(scheme='darkblue')), tooltip = ['z', 'M_sz/1e14', 'SNR', 'Y5R500'])
+    st.altair_chart(c, use_container_width = True)
 
 # ======================================================================================================
 st.markdown('---------------------------------------------------------------------------')
 
-fig, ax = plt.subplots(dpi = 30)
+fig, ax = plt.subplots(dpi = 13)
 
 ax.hist(df.z.values,bins = 12, histtype = "step", lw = 2, color = "deepskyblue")
 
@@ -235,8 +205,8 @@ if show_2d:
     st.markdown('---------------------------------------------------------------------------')
     st.markdown('A representation of 2-dimensional distribution (z VS s/n). Majority of clusters are at lower redshifts and have smaller signal to noise ratio.')
 
-    z_bin = np.linspace(0, 1, 12)
-    snr_bin = np.linspace(4, 40, 12)
+    z_bin = np.linspace(z_min, 1, 12)
+    snr_bin = np.linspace(snr_min, 40, 12)
 
     Nij_snr = np.zeros((12, 12))
 
@@ -260,6 +230,8 @@ if show_2d:
 if show_table:
     st.markdown('---------------------------------------------------------------------------')
     df
+
+
 
 
 st.markdown('-------------------------------------------------------------------------------')
