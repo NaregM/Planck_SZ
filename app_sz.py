@@ -47,11 +47,11 @@ catalog = st.sidebar.selectbox(
             'Catalogs: ',
             df_cat['union'])
 
-path = os.getcwd() + "/planck_sz/Catalogs/" + catalog
+#path = os.getcwd() + "/planck_sz/Catalogs/" + catalog
 
 #catalog = os.path.join(, "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits") s
 
-#catalog = os.path.join(".", "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
+catalog = os.path.join(".", "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
 
 hdulist_union = fits.open(path)
 
