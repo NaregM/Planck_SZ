@@ -47,8 +47,11 @@ catalog = st.sidebar.selectbox(
             'Catalogs: ',
             df_cat['union'])
 
+path = os.getcwd() + "/planck_sz/Catalogs/" + catalog
 
-path = os.path.join(".", "Catalogs", catalog)
+#catalog = os.path.join(, "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits") s
+
+#catalog = os.path.join(".", "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
 
 hdulist_union = fits.open(path)
 
@@ -72,11 +75,22 @@ df2 = pd.DataFrame({
                    'show_map': [True, False]
                    })
 
+
+#
+#snr_min = st.sidebar.selectbox(
+#    'Minimum signal to noise of detection: ',
+#    df0['snr'])
+
+
 snr_min = st.slider('Minimum Signal to Noise Ratio (s/n) of Detection: ', 3, 15, 5)
 z_min = st.slider('Minimum Redshift: ', 0.0, 1.0, 0.15)
 
+#cosmo_sample = st.sidebar.selectbox(
+    #'Cosmology sample: ',
+    #df2['show_data'])
+
 # Clusters used in Cosmology
-if st.checkbox('Use galaxy clusters from the cosmology sample'):
+if st.checkbox('Use galaxy clusters from cosmology sample'):
 
     cosmo_id = np.where(hdulist_union[1].data['COSMO'] == True)[0]
     z_ = np.asanyarray(hdulist_union[1].data['REDSHIFT'][cosmo_id], dtype = np.float)
@@ -131,12 +145,24 @@ show_2d = st.sidebar.selectbox(
     'Show 2D Distribution (z, s/n): ',
     df2['show_data'])
 
-'*', len(df), "Galaxy Clusters with signal to noise ratio (s/n) larger than ", snr_min, '.'
+#linreg = st.sidebar.selectbox(
+#    'Perform Linear Regression: ',
+#    df2['show_data'])
 
-dfe = df[['z', 'SNR', 'M_sz/1e14', 'Y5R500']]
-df.style.set_caption("Hello World")
-st.table(dfe.describe()[1:])
+
+'*', len(df), "Galaxy Clusters with signal to noise ratio (s/n) larger than ", snr_min, 'and redshift larger than ', z_min, '.'
+#'*', "Largest mass among clusters with s/n $\ge$  ", snr_min, ' : ', str(np.round(df['M_sz/1e14'].max(), 2)), r'$\times \ 10^{14}$', r'$M_{\odot}$.'
+#'*', "Average mass of clusters with s/n $\ge$  ", snr_min, ' : ', str(np.round(df['M_sz/1e14'].mean(), 2)), r'$\times \ 10^{14}$', r'$M_{\odot}$.'
+
+dfe = df[['z', 'SNR', 'M_sz/1e14', 'Y5R500']]#pd.DataFrame({'z_min': [np.round(df['z'].min(), 2)], 'z_max': [np.round(df['z'].max(), 2)], 'M_max [1e14 M_sol]': [np.round(df['M_sz/1e14'].max(), 2)]},
+        #            index = ['s/n > '+str(snr_min)])
+
+#df.style.set_caption("Hello World")
+df_desc = dfe.describe()[1:]
+st.table(df_desc)
+
 # ======================================================================================================
+color = st.beta_color_picker('Pick A Color For Your Map', '#00f900')
 if show_map:
 
     deg = df['GLON']#glon
@@ -146,12 +172,18 @@ if show_map:
     ra = ra.wrap_at(180*u.degree)
     dec = coord.Angle(deg1*u.degree)
 
+    #fig = plt.figure()
+    #hp.mollview(np.zeros(hp.nside2npix(6)), min = z.min(), max = z.max())
+    #hp.graticule()
+    #ax = fig.add_subplot(111, projection = "mollweide")
+    #hp.projscatter(glon[np.where(q > snr_min)[0]], glat[np.where(q > snr_min)[0]], lonlat = True, c = z[np.where(q > snr_min)[0]], s = 20, edgecolor = 'k')            # Add grid
+    #hp.mollview(np.zeros(hp.nside2npix(6)), cbar = None)
     fig = plt.figure(dpi = 1500)
 
-    ax = plt.gca(projection = "mollweide", facecolor = "deepskyblue")
-    image = ax.scatter(ra.radian, dec.radian, marker = 'o', c = df.z, s = 7, cmap = 'jet')
+    ax = plt.gca(projection = "mollweide", facecolor = color)
+    image = ax.scatter(ra.radian, dec.radian, marker = 'o', c = df.z, s = 7, cmap = 'jet')#ax.get_images()[0]
     cmap = fig.colorbar(image, ax = ax, shrink = 0.4)
-    cmap.ax.set_ylabel('Redshift', rotation = 270, labelpad = 12)
+    cmap.ax.set_ylabel('redshift', rotation = 270, labelpad = 12)
     plt.grid(True, color = 'black', alpha = 0.2)
     plt.tight_layout()
     st.pyplot(fig)
@@ -165,6 +197,7 @@ c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
                                             alt.Y('M_sz/1e14', scale=alt.Scale(zero=False)),
                                              color=alt.Color('SNR', scale=alt.Scale(scheme='darkblue')), tooltip = ['z', 'M_sz/1e14', 'SNR'])
 
+#cc = c + c.transform_regression('z', 'M_sz/1e14').mark_line(color = "red")
 if st.checkbox('Add Linear Regression'):
 
     c = alt.Chart(df).mark_circle().encode(alt.X('z', scale=alt.Scale(zero=False)),
@@ -225,6 +258,21 @@ if show_2d:
     plt.colorbar(label = 'Number of galaxy clusters')
     plt.grid(False)
     st.pyplot()
+
+
+#if linreg:
+
+    #sns.lmplot(x="z", y="M_sz/1e14", data=df)
+    #dff = pd.DataFrame({'z': df.z.values, 'M_sz': df["M_sz/1e14"].values, 'SNR':df["SNR"].values, 'SNR2':df["Y5R500"].values})
+    #chart = alt.Chart(dff).mark_circle(size = 10).encode(
+    #x='z',
+    #y='M_sz', size='SNR2').properties(width = 650)
+
+    #reg_plot = chart + chart.transform_regression('z', 'M_sz').mark_line(color = 'red')
+    #st.altair_chart(chart)
+    #reg_plot
+    #st.altair_chart(reg_plot)
+    #plt.tight_layout()
 
 # ======================================================================================================
 if show_table:
