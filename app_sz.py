@@ -43,7 +43,7 @@ df_cat = pd.DataFrame({
                      'union': ["HFI_PCCS_SZ-union_R2.08.fits"]
                      })
 
-catalog = st.sidebar.selectbox(
+catalog_ = st.sidebar.selectbox(
             'Catalogs: ',
             df_cat['union'])
 
@@ -51,9 +51,9 @@ catalog = st.sidebar.selectbox(
 
 #catalog = os.path.join(, "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits") s
 
-catalog = os.path.join(".", "Catalogs", "HFI_PCCS_SZ-union_R2.08.fits")
+catalog = os.path.join(".", "Catalogs", catalog_)
 
-hdulist_union = fits.open(path)
+hdulist_union = fits.open(catalog)
 
 st.markdown('## **Planck _Sunyaev-Zel\'dovich_ Galaxy Cluster Catalog Explorer**')
 
